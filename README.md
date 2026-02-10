@@ -1,1 +1,92 @@
-# mmv
+# Terrain Descriptors for Landscape Synthesis, Analysis and Simulation
+![Teaser](img/teaser.jpg)
+
+ **Terrain Descriptors for Landscape Synthesis, Analysis and Simulation**.
+ *Oscar Argudo, Eric Guérin, Hugo Schott, Eric Galin*.
+ Eurographics 2025 State of the Art.
+ Authors' implementation.
+ 
+*Abstract*: Synthetic landscape generation is an active research area within Computer Graphics. Algorithms for terrain synthesis and ecosystem simulations often rely on simple descriptors such as slope, light accessibility, and drainage area. Typically, the results are assessed from a perceptual standpoint, focusing primarily on visual plausibility. Other fields, such as Geomorphology and Earth Sciences, have already proposed several analytical descriptors to measure various terrain properties. This work aims to bridge the gap between these disciplines and Computer Graphics. We provide a comprehensive review of commonly used terrain metrics that may be relevant for landscape synthesis, analysis, or simulations. Additionally, we compare the approaches used in Computer Graphics to see if these metrics, or similar ones, have already been introduced. Moreover, we report feedback from a preliminary study conducted with a group of artists to evaluate the potential applications of previously unused metrics. By implementing all these metrics, we enable performance comparisons. Together with the provided correlation matrix, this helps identify instances where a simpler and faster metric can serve as a proxy for a more computationally intensive one.
+
+
+## Description
+
+The goal of this project is to serve as baseline implementation of the different descriptors included in the survey. 
+This is the application code we used for testing, image generation and timings.
+
+Most of the metrics are defined in the [HeightField](./appMetrics/heightfield.h) class. Their implementations are split across a few .cpp files (heightfield-metrics-XXXX.cpp), roughly organized according to the sections of the survey. River and ridge networks, along with a metrics that use them, are implemented in the helper class [TerrainAnalysis](./appMetrics/terrainanalysis.h). Example usages of the metrics from the UI parameters can be found in [mainwindow-draw-metrics.cpp](./appMetrics/mainwindow-draw-metrics.cpp).
+
+You can load one of the preset terrains or import your own, either in PNG or ASCII grid format. After loading, you can scale the terrain to match the desired resolution, spatial extent or elevation range. Other modifier buttons include filling or breaching the terrain to enforce a consistent drainage network, and Gaussian smoothing, implemented for testing purposes. The terrain used in most of the figures of the paper is [Alps: Mont Blanc](./terrains/alps-montblanc.png), derived from SRTM-3 data. The default values of the various UI widgets have been set accordingly. If you want to replicate some of the figures from the paper, see the [replicability.md](replicability.md) document.
+
+Some metrics (such as visibility) can take a long time to compute and the application might appear unresponsive during this time, as all code runs on the UI thread. For this reason, some input fields have callbacks that update the terrain metric texture dynamically, while others require reselecting the metric name to manually trigger the update. 
+
+Note that we often prioritized simple and illustrative implementations that closely follow the metric definitions. In some cases, algorithmic optimizations can lead to significant speed-ups (see, for example, the example code using Summed Area Tables for TPI). Additionally, many metrics could be parallelized or implemented on the GPU. This is left as an exercise for the reader :)
+
+
+### Compiling the code
+
+We provide a Qt project file ([AppTerrainMetrics.pro](./appMetrics/AppTerrainMetrics.pro)) to build the application. It has been tested on the following systems:
+- Windows 11 and Qt 6.3, with both MinGW 11.2 and MSVC2019 compilers
+- Windows 11 and Qt 6.8, with both MinGW 13.1 and MSVC2022 compilers
+- Ubuntu 22.04.5 LTS and Qt 6.9, with GCC compiler
+- macOS 15.5 and Qt 6.9, with Clang 15.0 (arm64) compiler
+
+To build the project using Qt Creator, open the `.pro` file, choose an appropriate kit, configure the project and build. Alternatively, you can use Qt's command-line tools from the [appMetrics](./appMetrics) directory running `qmake`and then `make`.
+
+### Windows binaries
+
+For Windows users, if you prefer not to compile the code, you can download the precompiled [binaries](https://github.com/oargudo/terrain-descriptors/releases/download/v1.0/app-metrics.zip). See the [release](https://github.com/oargudo/terrain-descriptors/releases/tag/v1.0) notes for more information. 
+
+### macOS compatibility
+
+Due to compatibility reasons, the first line of each shader in the [shaders](./appMetrics/shaders) folder has been modified to `#version 410 core` and the explicit layout qualifiers for some uniforms have been removed. You can refer to [this commit](https://github.com/oargudo/terrain-descriptors/commit/d8a676e26828cb76401bb61e6a5c512d32482719) for the changes made relative to the tagged release version.
+
+### Running the application
+
+The application assumes access to the [terrains](./terrains) folder at runtime. Please make sure this folder is either placed or linked in the same directory as the executable. If you are running the application from an IDE, configure the working directory to point to the folder containing `terrains`. If the application runs but the *Preset terrains* dropdown is empty, it's likely that the terrains folder is not accessed correctly, since this list is initialized with the contents in [presets.txt](./terrains/presets.txt).
+
+### Sample terrains
+
+We provide a varied set of [sample terrains](https://github.com/oargudo/terrain-descriptors/releases/download/v1.0/terrains-presets.zip), which can be edited through [presets.txt](./terrains/presets.txt). Most of them are based on SRTM data (~90m/cell resolution) and highlight different terrain types and features. Additionally, there are a few high-resolution DEMs (up to 2m/cell) for testing metrics on finer details, as well as some low-resolution, full-range terrains that are useful for analyzing large surface networks.
+
+
+### Improvements
+
+Possible ideas to improve the current application and code:
+- Move computations to a separate thread to prevent blocking the UI.
+- Display a progress bar during lengthy computations.
+- Implement parallelizable metrics on the GPU.
+- Define a Metric interface to separate them from HeightField class.
+- Better colormap editing (e.g., using a histogram).
+
+
+### Acknowledgements
+
+- The code for computing prominence and isolation has been slightly adapted from [Andrew Kirmse's repository](https://github.com/akirmse/mountains).
+- Most of the terrains provided as exemplars use the [improved SRTM DEMs by Jonathan de Ferranti](https://viewfinderpanoramas.org/dem3.html).
+- High-resolution terrains have been downloaded from [ICGC](https://www.icgc.cat/en), [CNIG](https://centrodedescargas.cnig.es/CentroDescargas/home), [swissALTI3D](https://www.swisstopo.admin.ch/en/height-model-swissalti3d) and [USGS NED](https://www.usgs.gov/publications/national-elevation-dataset).
+- The Moon terrain is a crop from the [LRO LOLA DEM](https://astrogeology.usgs.gov/search/map/moon_lro_lola_dem_118m) published by USGS Astrogeology Science Center.
+
+
+## Article
+
+The survey is published in [Computer Graphics Forum](https://onlinelibrary.wiley.com/doi/10.1111/cgf.70080) journal.
+
+If you use this code, please cite the paper:
+```
+@article{Argudo2025descriptors,
+    title = {Terrain descriptors for landscape synthesis, analysis and simulation},
+    author = {Argudo, O. and Gu{\'e}rin, E. and Schott, H. and Galin, E.},
+    journal = {Computer Graphics Forum},
+    year = {2025},
+    volume = {44},
+    number = {2}, 
+    doi = {https://doi.org/10.1111/cgf.70080},
+}
+```
+
+### Replicability
+
+Our work has been awarded the Replicability Stamp! [![](https://www.replicabilitystamp.org/logo/Reproducibility-tiny.png)](http://www.replicabilitystamp.org#https-github-com-oargudo-terrain-descriptors)
+
+See [replicability.md](./replicability.md) for instructions on reproducing many of the figures from the paper.
